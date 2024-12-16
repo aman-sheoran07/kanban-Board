@@ -120,3 +120,38 @@ async def assign_card(
     db.commit()
     db.refresh(card)
     return card
+
+from app.schemas.position import CardPositionUpdate
+from sqlalchemy import case
+
+# Add this new endpoint to the existing card.py router
+@router.put("/reorder", status_code=status.HTTP_200_OK)
+async def reorder_cards(
+    positions: CardPositionUpdate,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Get all card IDs
+    card_ids = [pos.id for pos in positions.cards]
+
+    # Verify user has access to all cards
+    cards = db.query(Card).join(ListModel).join(Board).filter(
+        Card.id.in_(card_ids),
+        Board.owner_id == current_user.id
+    ).all()
+
+    if len(cards) != len(card_ids):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to one or more cards"
+        )
+
+    # Update each card's position and list
+    for pos in positions.cards:
+        db.query(Card).filter(Card.id == pos.id).update({
+            "position": pos.position,
+            "list_id": pos.list_id
+        }, synchronize_session=False)
+
+    db.commit()
+    return {"message": "Cards reordered successfully"}

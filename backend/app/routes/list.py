@@ -88,3 +88,46 @@ async def delete_list(
     db.delete(db_list)
     db.commit()
     return None
+
+from app.schemas.position import ListPositionUpdate
+from sqlalchemy import case
+
+# Add this new endpoint to the existing list.py router
+@router.put("/reorder", status_code=status.HTTP_200_OK)
+async def reorder_lists(
+    positions: ListPositionUpdate,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Get all list IDs
+    list_ids = [pos.id for pos in positions.lists]
+
+    # Verify user has access to all lists
+    lists = db.query(ListModel).join(Board).filter(
+        ListModel.id.in_(list_ids),
+        Board.owner_id == current_user.id
+    ).all()
+
+    if len(lists) != len(list_ids):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to one or more lists"
+        )
+
+    # Create a CASE statement for position updates
+    when_statements = [
+        (ListModel.id == pos.id, pos.position)
+        for pos in positions.lists
+    ]
+    position_case = case(*when_statements)
+
+    # Update positions
+    db.query(ListModel).filter(
+        ListModel.id.in_(list_ids)
+    ).update(
+        {"position": position_case},
+        synchronize_session=False
+    )
+
+    db.commit()
+    return {"message": "Lists reordered successfully"}
