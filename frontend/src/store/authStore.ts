@@ -1,45 +1,53 @@
 import { create } from 'zustand';
-import { User } from '../types/auth.types';
 import { authService } from '../services/auth.service';
+import { User, LoginCredentials, RegisterData, AuthResponse } from '../types/auth.types';
 
 interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+    user: User | null;
+    isLoading: boolean;
+    error: string | null;
+    login: (username: string, password: string) => Promise<void>;
+    logout: () => void;
+    register: (data: RegisterData) => Promise<void>;
+    setUser: (user: User | null) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isAuthenticated: false,
-  isLoading: false,
+    user: null,
+    isLoading: false,
+    error: null,
 
-  login: async (username, password) => {
-    set({ isLoading: true });
-    try {
-      const response = await authService.login({ username, password });
-      localStorage.setItem('token', response.access_token);
-      const user = await authService.getCurrentUser();
-      set({ user, isAuthenticated: true });
-    } finally {
-      set({ isLoading: false });
+    setUser: (user) => set({ user }),
+
+    login: async (username: string, password: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const { data } = await authService.login({ username, password });
+            localStorage.setItem('token', data.access_token);
+            set({ user: { username, id: 0, email: '' } });
+        } catch (error: any) {
+            set({ error: error.response?.data?.detail || 'Login failed' });
+            throw error;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    logout: () => {
+        localStorage.removeItem('token');
+        set({ user: null });
+    },
+
+    register: async (data: RegisterData) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await authService.register(data);
+            set({ user: response.data });
+        } catch (error: any) {
+            set({ error: error.response?.data?.detail || 'Registration failed' });
+            throw error;
+        } finally {
+            set({ isLoading: false });
+        }
     }
-  },
-
-  register: async (username, email, password) => {
-    set({ isLoading: true });
-    try {
-      await authService.register({ username, email, password });
-      await useAuthStore.getState().login(username, password);
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  logout: () => {
-    localStorage.removeItem('token');
-    set({ user: null, isAuthenticated: false });
-  },
 }));

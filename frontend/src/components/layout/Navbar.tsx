@@ -1,3 +1,4 @@
+// src/components/layout/Navbar.tsx
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
@@ -7,12 +8,12 @@ export const Navbar = () => {
     const { user, logout } = useAuthStore();
 
     return (
-        <nav className="bg-white shadow">
+        <nav className="bg-gray-800 text-white shadow">
             <div className="max-w-7xl mx-auto px-4">
                 <div className="flex justify-between h-16">
                     <div className="flex">
                         <Link to="/boards" className="flex items-center">
-                            <span className="text-xl font-bold">Kanban Board</span>
+                            <span className="text-xl font-bold text-white">Kanban Board</span>
                         </Link>
                     </div>
 
@@ -20,10 +21,10 @@ export const Navbar = () => {
                         <div className="relative">
                             <button
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                                className="flex items-center space-x-2"
+                                className="flex items-center space-x-2 hover:bg-gray-700 px-3 py-2 rounded-md"
                             >
-                                <span>{user?.username}</span>
-                                <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                                <span className="text-white">{user?.username}</span>
+                                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white">
                                     {user?.username?.[0].toUpperCase()}
                                 </div>
                             </button>

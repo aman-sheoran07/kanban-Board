@@ -1,18 +1,20 @@
 import api from '../utils/axios';
-import { LoginCredentials, RegisterData, AuthResponse, User } from '../types/auth.types';
 
 export const authService = {
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const formData = new FormData();
+  async register(data: any) {
+    return await api.post('/auth/register', data);
+  },
+
+  async login(credentials: any) {
+    const formData = new URLSearchParams();
     formData.append('username', credentials.username);
     formData.append('password', credentials.password);
 
-    const response = await api.post<AuthResponse>('/auth/token', formData);
-    return response.data;
-  },
-
-  async register(data: RegisterData): Promise<User> {
-    const response = await api.post<User>('/auth/register', data);
-    return response.data;
+    const { data } = await api.post('/auth/token', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+    return data;  // Return just the data
   }
 };

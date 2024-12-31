@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import {authService} from "../../services/auth.service.ts";
 
 export const LoginForm = () => {
     const [username, setUsername] = useState('');
@@ -15,8 +16,10 @@ export const LoginForm = () => {
 
         try {
             const response = await authService.login({ username, password });
-            localStorage.setItem('token', response.access_token);
-            navigate('/boards');
+            if (response && response.access_token) {
+                localStorage.setItem('token', response.access_token);
+                navigate('/boards');
+            }
         } catch (err: any) {
             console.error('Login error:', err);
             setError(err.response?.data?.detail || 'Invalid username or password');

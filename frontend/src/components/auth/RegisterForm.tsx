@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../services/auth.service';
+import { RegisterData } from '../../types/auth.types';
 
 export const RegisterForm = () => {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<RegisterData>({
         username: '',
         email: '',
         password: '',
     });
-    const [error, setError] = useState('');
+    const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -19,19 +20,19 @@ export const RegisterForm = () => {
 
         try {
             await authService.register(formData);
-            // Login after successful registration
             const loginResponse = await authService.login({
                 username: formData.username,
                 password: formData.password,
             });
-            localStorage.setItem('token', loginResponse.access_token);
-            navigate('/boards');
+
+            if (loginResponse && loginResponse.access_token) {
+                localStorage.setItem('token', loginResponse.access_token);
+                navigate('/boards');
+            } else {
+                throw new Error('Invalid login response');
+            }
         } catch (err: any) {
-            console.error('Registration error:', err);
-            setError(
-                err.response?.data?.detail ||
-                'Registration failed. Please try again.'
-            );
+            setError(err?.response?.data?.detail || 'Registration failed. Please try again.');
         } finally {
             setIsLoading(false);
         }
